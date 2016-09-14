@@ -28,13 +28,13 @@ foreach ($db in $PFDBs)
         Start-Sleep -m 15000
         Set-Mailbox -Identity $DiscoveryMBName -HiddenFromAddressListsEnabled $true
     
-        $mailboxes += Get-Mailbox $DiscoveryMBName
+        $newMailboxList += Get-Mailbox $DiscoveryMBName
     }
     
 }
 
-$newMailboxList = @()
-$newMailboxList = (Get-OrganizationConfig).RemotePublicFolderMailboxes += $mailboxes
+$currentMailboxes = @()
+$currentMailboxes = (Get-OrganizationConfig).RemotePublicFolderMailboxes += $newMailboxes
 
-Set-OrganizationConfig -RemotePublicFolderMailboxes $newMailboxList
+Set-OrganizationConfig -RemotePublicFolderMailboxes $currentMailboxes
 Set-OrganizationConfig -PublicFoldersEnabled Remote
