@@ -1,4 +1,6 @@
-﻿$list = Get-ExchangeServer | ? { $_.AdminDisplayVersion -like "Version 14.3*" -and $_.ServerRole -Contains "Mailbox"}
+$list = Get-ExchangeServer | ? { $_.AdminDisplayVersion -like "Version 14.3*" -and $_.ServerRole -Contains "Mailbox"}
+
+$mailboxes = @()
 
 foreach ($l in $list)
 {
@@ -20,5 +22,10 @@ foreach ($l in $list)
     Write-Host "Sleeping 15 seconds..."
     Start-Sleep -m 15000
     Set-Mailbox -Identity $DiscoveryMBName -HiddenFromAddressListsEnabled $true
-
+    
+    $mailboxes += Get-Mailbox $DiscoveryMBName
+    
 }
+
+Set-OrganizationConfig -RemotePublicFolderMailboxes $mailboxes
+Set-OrganizationConfig -PublicFoldersEnabled Remote
