@@ -1,31 +1,40 @@
-$list = Get-ExchangeServer | ? { $_.AdminDisplayVersion -like "Version 14.3*" -and $_.ServerRole -Contains "Mailbox"}
+$PFDBs = Get-PublicFolderDatabase
 
 $mailboxes = @()
 
-foreach ($l in $list)
+foreach ($db in $PFDBs)
 {
 
-    $DiscoveryDBName = "PFDiscoveryDB-" + $l.name
+    $server = $db.server | Get-ExchangeServer
+
+    $DiscoveryDBName = "PFDiscoveryDB-" + $server.name
     
-    New-MailboxDatabase -Name $DiscoveryDBName -Server $l.name -IsExcludedFromProvisioning $true
-    Write-Host "Sleeping 15 seconds..."
-    Start-Sleep -m 15000
-    Set-MailboxDatabase -Identity $DiscoveryDBName -RpcClientAccessServer $l.fqdn 
+    if (!(Get-MailboxDatabase $DiscoveryDBName)) 
+    {
 
-    $DiscoveryMBName = "PFDiscoveryMB-" + $l.name
+        New-MailboxDatabase -Name $DiscoveryDBName -Server $server -IsExcludedFromProvisioning $true 
+        Write-Host "Sleeping 15 seconds..."
+        Start-Sleep -m 15000
+        Set-MailboxDatabase -Identity $DiscoveryDBName -RpcClientAccessServer $server.fqdn 
 
-    $password = [System.Web.Security.Membership]::GeneratePassword(64,10)
+        $DiscoveryMBName = "PFDiscoveryMB-" + $server.name
 
-    $UPN = $DiscoveryMBName + "@" + (Get-UserPrincipalNamesSuffix)[0]
+        $password = [System.Web.Security.Membership]::GeneratePassword(64,10)
 
-    New-Mailbox -Name $DiscoveryMBName -Database $DiscoveryDBName -UserPrincipalName $UPN -Password (ConvertTo-SecureString -String $password -AsPlainText -Force) 
-    Write-Host "Sleeping 15 seconds..."
-    Start-Sleep -m 15000
-    Set-Mailbox -Identity $DiscoveryMBName -HiddenFromAddressListsEnabled $true
+        $UPN = $DiscoveryMBName + "@" + (Get-UserPrincipalNamesSuffix)[0]
+
+        New-Mailbox -Name $DiscoveryMBName -Database $DiscoveryDBName -UserPrincipalName $UPN -Password (ConvertTo-SecureString -String $password -AsPlainText -Force) 
+        Write-Host "Sleeping 15 seconds..."
+        Start-Sleep -m 15000
+        Set-Mailbox -Identity $DiscoveryMBName -HiddenFromAddressListsEnabled $true
     
-    $mailboxes += Get-Mailbox $DiscoveryMBName
+        $mailboxes += Get-Mailbox $DiscoveryMBName
+    }
     
 }
 
-Set-OrganizationConfig -RemotePublicFolderMailboxes $mailboxes
+$newMailboxList = @()
+$newMailboxList = (Get-OrganizationConfig).RemotePublicFolderMailboxes += $mailboxes
+
+Set-OrganizationConfig -RemotePublicFolderMailboxes $newMailboxList
 Set-OrganizationConfig -PublicFoldersEnabled Remote
