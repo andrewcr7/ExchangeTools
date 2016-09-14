@@ -28,7 +28,7 @@ foreach ($db in $PFDBs)
         Start-Sleep -m 15000
         Set-Mailbox -Identity $DiscoveryMBName -HiddenFromAddressListsEnabled $true
     
-        $newMailboxList += Get-Mailbox $DiscoveryMBName
+        $newMailboxes += Get-Mailbox $DiscoveryMBName
     }
     
 }
